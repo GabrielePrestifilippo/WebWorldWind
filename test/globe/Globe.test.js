@@ -15,23 +15,26 @@ define([
     "use strict";
 
     describe("GlobeTest", function () {
-        var coverageSector = new Sector(-90, 90, -180, 180),
-            levelZeroDelta = new Location(45, 45),
-            numLevels = 12,
-            retrievalImageFormat = "application/bil16",
-            cachePath = "EarthElevations256",
-            tileHeight = 256,
-            tileWidth = 256;
+        /*
+         var coverageSector = new Sector(-90, 90, -180, 180),
+         levelZeroDelta = new Location(45, 45),
+         numLevels = 12,
+         retrievalImageFormat = "application/bil16",
+         cachePath = "EarthElevations256",
+         tileHeight = 256,
+         tileWidth = 256;
 
 
-        var elevationModel = new ElevationModel(coverageSector, levelZeroDelta, numLevels, retrievalImageFormat, cachePath,
-            tileWidth, tileHeight);
+         var elevationModel = new ElevationModel(coverageSector, levelZeroDelta, numLevels, retrievalImageFormat, cachePath,
+         tileWidth, tileHeight);
 
-        var projection = new ProjectionWgs84();
-
+         var projection = new ProjectionWgs84();
+         */
         describe("Globe constructor", function () {
 
             it("Should create a globe and set all the properties", function () {
+                var elevationModel = {};
+                var projection = {};
                 var globe = new Globe(elevationModel, projection);
                 expect(globe.elevationModel).toEqual(elevationModel);
                 expect(globe.equatorialRadius).toEqual(6378137.0);
@@ -47,35 +50,107 @@ define([
 
 
             it("Should create a WGS84 projection if none provided", function () {
-                var globe = new Globe(elevationModel, null);
+                var globe = new Globe({}, null);
+                var projection = new ProjectionWgs84();
                 expect(globe._projection).toEqual(projection);
 
             });
 
             it("Should throw an error on missing elevationModel", function () {
                 expect(function () {
-                    var globe = new Globe(null, projection);
+                    var globe = new Globe(null, {});
                 }).toThrow();
             });
         });
 
         describe("Globe Properties definition", function () {
-            var globe = new Globe(elevationModel, projection);
+            var globe = new Globe({}, {});
 
-            describe("Globe Properties definition", function () {
-
-                it("Returns the state key", function () {
-                    expect(globe.stateKey).toEqual(globe._stateKey + globe.elevationModel.stateKey + "offset " + globe.offset.toString() + " "
-                        + globe.projection.stateKey);
-                });
-
-                it("Indicates if the globe is continous", function () {
-                    expect(globe.continuous).toEqual(globe.projection.continuous);
-                });
-
+            it("Returns the state key", function () {
+                expect(globe.stateKey).toEqual(globe._stateKey + globe.elevationModel.stateKey + "offset " + globe.offset.toString() + " "
+                    + globe.projection.stateKey);
             });
+
+            it("Indicates if the globe is continous", function () {
+                expect(globe.continuous).toEqual(globe.projection.continuous);
+            });
+
+            it("Get the projection used by the globe", function () {
+                var projection = "mockProjection";
+                globe.projection = projection;
+                expect(globe.projection).toEqual(globe._projection);
+                expect(globe.projection).toEqual(projection);
+            });
+
+            it("Get the projection limits of the associated projection", function () {
+                expect(globe.projectionLimits).toEqual(globe._projection.projectionLimits);
+            });
+
+            it("Get the offset applied to this globe", function () {
+                globe.offset = 3;
+                expect(globe._offset).toEqual(3);
+                expect(globe.offset).toEqual(3);
+                expect(globe.offsetVector[0]).toEqual(120225050.05673546);
+            });
+
         });
 
+        describe("Check if the globe is 2D", function () {
+
+            it("Returns a 2D globe", function () {
+                var projection = {is2D: true};
+                var globe = new Globe({}, projection);
+                var is2D = globe.is2D();
+                expect(is2D).toEqual(true);
+            });
+
+            it("Returns a 2D globe", function () {
+                var projection = {is2D: false};
+                var globe = new Globe({}, projection);
+                var is2D = globe.is2D();
+                expect(is2D).toEqual(false);
+            });
+
+        });
+
+        describe("Computes a Cartesian point from a specified position", function () {
+
+
+            it("Computes a Cartesian point successfully", function () {
+                var projection = {
+                    geographicToCartesian: function () {
+                        return true;
+                    }
+                };
+                var latitude,
+                    longitude,
+                    altitude,
+                    result=true;
+
+                var globe = new Globe({}, projection);
+
+                var cartesianPoint = globe.computePointFromPosition(latitude, longitude, altitude, result);
+                expect(cartesianPoint).toEqual(true);
+            });
+
+            it("Should throw an error on missing result", function () {
+                expect(function () {
+                    var projection = {
+                        geographicToCartesian: function () {
+                            return true;
+                        }
+                    };
+                    var latitude,
+                        longitude,
+                        altitude;
+
+                    var globe = new Globe({}, projection);
+
+                    var cartesianPoint = globe.computePointFromPosition(latitude, longitude, altitude, null);
+                }).toThrow();
+            });
+
+        });
 
     });//globe test
 });//require def
