@@ -4,37 +4,20 @@
  */
 define([
     'src/globe/Globe',
-    'src/globe/ElevationModel',
     'src/geom/Location',
     'src/projections/ProjectionWgs84',
-    'src/geom/Sector',
     'src/globe/Tessellator',
     'src/geom/Vec3'
 
-], function (Globe, ElevationModel, Location, ProjectionWgs84, Sector, Tessellator, Vec3) {
+], function (Globe, Location, ProjectionWgs84, Tessellator, Vec3) {
     "use strict";
 
     describe("GlobeTest", function () {
-        /*
-         var coverageSector = new Sector(-90, 90, -180, 180),
-         levelZeroDelta = new Location(45, 45),
-         numLevels = 12,
-         retrievalImageFormat = "application/bil16",
-         cachePath = "EarthElevations256",
-         tileHeight = 256,
-         tileWidth = 256;
 
-
-         var elevationModel = new ElevationModel(coverageSector, levelZeroDelta, numLevels, retrievalImageFormat, cachePath,
-         tileWidth, tileHeight);
-
-         var projection = new ProjectionWgs84();
-         */
         describe("Globe constructor", function () {
-
             it("Should create a globe and set all the properties", function () {
-                var elevationModel = {};
-                var projection = {};
+                var elevationModel = "elevationMock";
+                var projection = "projectionMock";
                 var globe = new Globe(elevationModel, projection);
                 expect(globe.elevationModel).toEqual(elevationModel);
                 expect(globe.equatorialRadius).toEqual(6378137.0);
@@ -47,7 +30,6 @@ define([
                 expect(globe.id).toEqual(Globe.idPool);
                 expect(globe._stateKey).toEqual("globe " + globe.id.toString() + " ");
             });
-
 
             it("Should create a WGS84 projection if none provided", function () {
                 var globe = new Globe({}, null);
@@ -92,7 +74,6 @@ define([
                 expect(globe.offset).toEqual(3);
                 expect(globe.offsetVector[0]).toEqual(120225050.05673546);
             });
-
         });
 
         describe("Check if the globe is 2D", function () {
@@ -110,44 +91,51 @@ define([
                 var is2D = globe.is2D();
                 expect(is2D).toEqual(false);
             });
-
         });
 
         describe("Computes a Cartesian point from a specified position", function () {
 
-
-            it("Computes a Cartesian point successfully", function () {
-                var projection = {
-                    geographicToCartesian: function () {
-                        return true;
-                    }
-                };
-                var latitude,
-                    longitude,
-                    altitude,
-                    result=true;
-
-                var globe = new Globe({}, projection);
-
-                var cartesianPoint = globe.computePointFromPosition(latitude, longitude, altitude, result);
-                expect(cartesianPoint).toEqual(true);
-            });
-
             it("Should throw an error on missing result", function () {
                 expect(function () {
-                    var projection = {
-                        geographicToCartesian: function () {
-                            return true;
-                        }
-                    };
                     var latitude,
                         longitude,
                         altitude;
 
-                    var globe = new Globe({}, projection);
-
+                    var globe = new Globe({}, {});
                     var cartesianPoint = globe.computePointFromPosition(latitude, longitude, altitude, null);
                 }).toThrow();
+            });
+            
+            it("Computes a Cartesian point successfully with SpyOn", function () {
+                var latitude,
+                    longitude,
+                    altitude,
+                    result = true;
+
+                var projection = {
+                    geographicToCartesian: function () {
+                    }
+                };
+                spyOn(projection, "geographicToCartesian");
+
+                var globe = new Globe({}, projection);
+                globe.computePointFromPosition(latitude, longitude, altitude, result);
+                expect(projection.geographicToCartesian).toHaveBeenCalled();
+            });
+
+            it("Computes a Cartesian point successfully with createSpy", function () {
+                var latitude,
+                    longitude,
+                    altitude,
+                    result = true;
+
+                var projection = {};
+
+                projection.geographicToCartesian = jasmine.createSpy("geographicToCartesian spy");
+                var globe = new Globe({}, projection);
+                globe.computePointFromPosition(latitude, longitude, altitude, result);
+                expect(projection.geographicToCartesian).toHaveBeenCalled();
+
             });
 
         });
