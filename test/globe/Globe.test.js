@@ -115,7 +115,6 @@ define([
 
         describe("Computes a Cartesian point from a specified position", function () {
 
-
             it("Computes a Cartesian point successfully", function () {
                 var projection = {
                     geographicToCartesian: function () {
@@ -149,6 +148,109 @@ define([
                     var cartesianPoint = globe.computePointFromPosition(latitude, longitude, altitude, null);
                 }).toThrow();
             });
+        });
+
+        describe("Computes a Cartesian point from a specified location", function () {
+
+            it("Computes a Cartesian point successfully", function () {
+                var projection = {
+                    geographicToCartesian: function () {
+                        return true;
+                    }
+                };
+                var latitude,
+                    longitude,
+                    altitude,
+                    result=true;
+
+                var globe = new Globe({}, projection);
+
+                var cartesianPoint = globe.computePointFromLocation(latitude, longitude, result);
+                expect(cartesianPoint).toEqual(true);
+            });
+
+            it("Should throw an error on missing result", function () {
+                expect(function () {
+                    var latitude,
+                        longitude,
+                        altitude;
+
+                    var globe = new Globe({}, {});
+
+                    var cartesianPoint = globe.computePointFromLocation(latitude, longitude, null);
+                }).toThrow();
+            });
+        });
+
+        describe("Computes a grid of Cartesian points", function () {
+            var sector={},
+                numLat=2,
+                numLon=2,
+                elevations=5,
+                referencePoint=new Vec3(0,0,0),
+                result= new Float32Array(9);
+
+            it("Computes a Cartesian point successfully", function () {
+                var projection = {
+                    geographicToCartesianGrid: function () {
+                        return true;
+                    }
+                };
+                var globe = new Globe({}, projection);
+
+                var cartesianPoint = globe.computePointsForGrid(sector, numLat, numLon, elevations, referencePoint, result);
+                expect(cartesianPoint).toEqual(true);
+            });
+
+            it("Should throw an error on missing sector", function () {
+                expect(function () {
+                    var globe = new Globe({}, {});
+
+                    var cartesianPoint = globe.computePointsForGrid(null, numLat, numLon, elevations, referencePoint, result);
+                }).toThrow();
+            });
+
+            it("Should throw an error on numLat less than 1", function () {
+                expect(function () {
+                    var globe = new Globe({}, {});
+
+                    var cartesianPoint = globe.computePointsForGrid(sector, 0, numLon, elevations, referencePoint, result);
+                }).toThrow();
+            });
+
+            it("Should throw an error on numLon less than 1", function () {
+                expect(function () {
+                    var globe = new Globe({}, {});
+
+                    var cartesianPoint = globe.computePointsForGrid(sector, numLat, 0, elevations, referencePoint, result);
+                }).toThrow();
+            });
+
+            it("Should throw an error on null elevations", function () {
+                expect(function () {
+                    var globe = new Globe({}, {});
+
+                    var cartesianPoint = globe.computePointsForGrid(sector, numLat, numLon, 0, referencePoint, result);
+                }).toThrow();
+            });
+
+            it("Should throw an error on elevations length less than points", function () {
+                expect(function () {
+                    var globe = new Globe({}, {});
+
+                    var cartesianPoint = globe.computePointsForGrid(sector, numLat, numLon, 100, referencePoint, result);
+                }).toThrow();
+            });
+
+            it("Should throw an error on result length less than points", function () {
+                expect(function () {
+                    var globe = new Globe({}, {});
+                    var smallResult=new Float32Array(4);
+
+                    var cartesianPoint = globe.computePointsForGrid(sector, numLat, numLon, elevations, referencePoint, smallResult);
+                }).toThrow();
+            });
+
 
         });
 
