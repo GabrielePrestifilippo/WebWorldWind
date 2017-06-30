@@ -97,47 +97,126 @@ define([
 
             it("Should throw an error on missing result", function () {
                 expect(function () {
-                    var latitude,
-                        longitude,
-                        altitude;
+                    var latitude = 37,
+                        longitude = 15,
+                        altitude = 1e5;
 
                     var globe = new Globe({}, {});
-                    var cartesianPoint = globe.computePointFromPosition(latitude, longitude, altitude, null);
+                    globe.computePointFromPosition(latitude, longitude, altitude, null);
                 }).toThrow();
             });
-            
-            it("Computes a Cartesian point successfully with SpyOn", function () {
-                var latitude,
-                    longitude,
-                    altitude,
-                    result = true;
 
-                var projection = {
-                    geographicToCartesian: function () {
-                    }
-                };
-                spyOn(projection, "geographicToCartesian");
-
-                var globe = new Globe({}, projection);
-                globe.computePointFromPosition(latitude, longitude, altitude, result);
-                expect(projection.geographicToCartesian).toHaveBeenCalled();
-            });
-
-            it("Computes a Cartesian point successfully with createSpy", function () {
-                var latitude,
-                    longitude,
-                    altitude,
+            it("Computes a Cartesian point successfully from a Position", function () {
+                var latitude = 37,
+                    longitude = 15,
+                    altitude = 1e5,
                     result = true;
 
                 var projection = {};
 
                 projection.geographicToCartesian = jasmine.createSpy("geographicToCartesian spy");
                 var globe = new Globe({}, projection);
-                globe.computePointFromPosition(latitude, longitude, altitude, result);
-                expect(projection.geographicToCartesian).toHaveBeenCalled();
 
+                globe.computePointFromPosition(latitude, longitude, altitude, result);
+
+                expect(projection.geographicToCartesian).toHaveBeenCalledWith(globe, latitude, longitude, altitude,
+                    globe.offsetVector, result);
+            });
+        });
+
+        describe("Computes a Cartesian point from a specified location", function () {
+
+            it("Should throw an error on missing result", function () {
+                expect(function () {
+                    var latitude = 37,
+                        longitude = 15;
+
+                    var globe = new Globe({}, {});
+                    globe.computePointFromLocation(latitude, longitude, null);
+                }).toThrow();
             });
 
+            it("Computes a Cartesian point successfully from a location", function () {
+                var latitude = 37,
+                    longitude = 15,
+                    result = true;
+
+                var globe = new Globe({}, {});
+
+                spyOn(globe, "computePointFromPosition");
+
+                globe.computePointFromLocation(latitude, longitude, result);
+                expect(globe.computePointFromPosition).toHaveBeenCalledWith(latitude, longitude, 0, result);
+            });
+        });
+
+        describe("Computes a grid of Cartesian points", function () {
+            var sector = {},
+                numLat = 1,
+                numLon = 1, elevations = [1],
+                referencePoint,
+                result = [1];
+
+            describe("Exceptions on wrong inputs", function () {
+
+                it("Should throw an error on missing result", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        globe.computePointsForGrid(null, numLat, numLon, elevations, referencePoint, result);
+                    }).toThrow();
+                });
+
+                it("Should throw an error on null numlat", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        globe.computePointsForGrid(sector, 0, numLon, elevations, referencePoint, result);
+                    }).toThrow();
+                });
+
+                it("Should throw an error on null numlon", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        globe.computePointsForGrid(sector, numLat, 0, elevations, referencePoint, result);
+                    }).toThrow();
+                });
+
+                it("Should throw an error on null elevations", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        globe.computePointsForGrid(sector, numLat, numLon, null, referencePoint, result);
+                    }).toThrow();
+                });
+
+                it("Should throw an error on elevations less than the number of points", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        globe.computePointsForGrid(sector, numLat, numLon, [], referencePoint, result);
+                    }).toThrow();
+                });
+
+                it("Should throw an error on null result", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        globe.computePointsForGrid(sector, numLat, numLon, elevations, referencePoint, null);
+                    }).toThrow();
+                });
+
+                it("Should throw an error on results less than the number of points", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        globe.computePointsForGrid(sector, numLat, numLon, elevations, referencePoint, []);
+                    }).toThrow();
+                });
+            });
+
+            it("Computes the grid of Cartesian points correctly", function () {
+                var projection = {};
+                projection.geographicToCartesianGrid = jasmine.createSpy("geographicToCartesianGrid spy");
+                var globe = new Globe({}, projection);
+                globe.computePointsForGrid(sector, numLat, numLon, elevations, referencePoint, result);
+                expect(projection.geographicToCartesianGrid).toHaveBeenCalledWith(globe, sector, numLat, numLon,
+                    elevations, referencePoint, globe.offsetVector, result);
+            });
         });
 
     });//globe test
