@@ -290,20 +290,129 @@ define([
             });
 
             it("Computes the position warpping the globe", function () {
-                var projection = {continuous:true};
+                var projection = {continuous: true};
                 var x = 37,
                     y = 15,
                     z = 1e6,
-                    result = {longitude:200};
+                    result = {longitude: 200};
 
                 projection.cartesianToGeographic = jasmine.createSpy("cartesianToGeographic spy");
 
                 var globe = new Globe({}, projection);
 
-                var computedPosition=globe.computePositionFromPoint(x, y, z, result);
-                expect(computedPosition).toEqual({longitude:-160});
+                var computedPosition = globe.computePositionFromPoint(x, y, z, result);
+                expect(computedPosition).toEqual({longitude: -160});
             });
         });
+
+        describe("Computes the radius of this globe at a specified location", function () {
+
+            it("Computes the radius at the equator", function () {
+                var latitude = 0,
+                    longitude = 0;
+                var globe = new Globe({}, {});
+
+                var radius = globe.radiusAt(latitude, longitude);
+                expect(radius).toEqual(6378137);
+            });
+
+
+            it("Computes the radius at the North Pole", function () {
+                var latitude = 90,
+                    longitude = 0;
+                var globe = new Globe({}, {});
+
+                var radius = globe.radiusAt(latitude, longitude);
+                expect(radius).toBeCloseTo(6356752.31, 2);
+            });
+
+            it("Computes the radius at the South Pole", function () {
+                var latitude = -90,
+                    longitude = 0;
+                var globe = new Globe({}, {});
+
+                var radius = globe.radiusAt(latitude, longitude);
+                expect(radius).toBeCloseTo(6356752.31, 2);
+            });
+
+            it("Computes the radius at the Greenwhich", function () {
+                var latitude = 51.47,
+                    longitude = 0;
+                var globe = new Globe({}, {});
+
+                var radius = globe.radiusAt(latitude, longitude);
+                expect(radius).toBeCloseTo(6365092.99, 2);
+            });
+
+        });
+
+        describe("Computes the normal vector to this globe's surface at a specified location", function () {
+
+            it("Should throw an error on missing result", function () {
+                expect(function () {
+                    var latitude = 0,
+                        longitude = 0;
+
+                    var globe = new Globe({}, {});
+                    globe.surfaceNormalAtLocation(latitude, longitude, null);
+                }).toThrow();
+            });
+
+            it("Computes the normal at 0,0", function () {
+                var latitude = 0,
+                    longitude = 0,
+                    result = new Vec3(0, 0, 0);
+                var globe = new Globe({}, {});
+
+                var normal = globe.surfaceNormalAtLocation(latitude, longitude, result);
+                var expected = new Vec3(0, 0, 1);
+                expect(normal).toEqual(expected);
+            });
+
+            it("Computes the normal at the North Pole", function () {
+                var latitude = 90,
+                    longitude = 0,
+                    result = new Vec3(0, 0, 0);
+                var globe = new Globe({}, {});
+
+                var normal = globe.surfaceNormalAtLocation(latitude, longitude, result);
+                var expected = new Vec3(0, 1, 0);
+
+                expect(normal[0]).toBeCloseTo(expected[0]);
+                expect(normal[1]).toBeCloseTo(expected[1]);
+                expect(normal[2]).toBeCloseTo(expected[2]);
+            });
+
+            it("Computes the normal at the South Pole", function () {
+                var latitude = -90,
+                    longitude = 0,
+                    result = new Vec3(0, 0, 0);
+                var globe = new Globe({}, {});
+
+                var normal = globe.surfaceNormalAtLocation(latitude, longitude, result);
+                var expected = new Vec3(0, -1, 0);
+
+                expect(normal[0]).toBeCloseTo(expected[0]);
+                expect(normal[1]).toBeCloseTo(expected[1]);
+                expect(normal[2]).toBeCloseTo(expected[2]);
+            });
+
+            it("Computes the normal at 45,45", function () {
+                var latitude = 45,
+                    longitude = 45,
+                    result = new Vec3(0, 0, 0);
+                var globe = new Globe({}, {});
+
+                var normal = globe.surfaceNormalAtLocation(latitude, longitude, result);
+                var expected = new Vec3(0.5, 0.707, 0.5);
+
+                expect(normal[0]).toBeCloseTo(expected[0]);
+                expect(normal[1]).toBeCloseTo(expected[1]);
+                expect(normal[2]).toBeCloseTo(expected[2]);
+            });
+
+        });
+
 
     });
 //globe test
