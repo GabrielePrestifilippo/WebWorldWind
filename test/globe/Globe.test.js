@@ -5,11 +5,13 @@
 define([
     'src/globe/Globe',
     'src/geom/Location',
+    'src/geom/Plane',
     'src/projections/ProjectionWgs84',
     'src/globe/Tessellator',
-    'src/geom/Vec3'
+    'src/geom/Vec3',
 
-], function (Globe, Location, ProjectionWgs84, Tessellator, Vec3) {
+
+], function (Globe, Location, Plane, ProjectionWgs84, Tessellator, Vec3) {
     "use strict";
 
     describe("GlobeTest", function () {
@@ -51,8 +53,8 @@ define([
             var globe = new Globe({}, {});
 
             it("Returns the state key", function () {
-                expect(globe.stateKey).toEqual(globe._stateKey + globe.elevationModel.stateKey + "offset " + globe.offset.toString() + " "
-                    + globe.projection.stateKey);
+                expect(globe.stateKey).toEqual(globe._stateKey + globe.elevationModel.stateKey + "offset " +
+                    globe.offset.toString() + " " + globe.projection.stateKey);
             });
 
             it("Indicates if the globe is continous", function () {
@@ -346,7 +348,7 @@ define([
 
         });
 
-        describe("Computes the normal vector to this globe's surface at a specified location", function () {
+        describe("Computes the normal vector to this at a specified location", function () {
 
             it("Should throw an error on missing result", function () {
                 expect(function () {
@@ -413,7 +415,355 @@ define([
 
         });
 
+        describe("Computes the normal vector at a specified Cartesian point", function () {
+
+            it("Should throw an error on missing result", function () {
+                expect(function () {
+                    var x = 0,
+                        y = 0,
+                        x = 0;
+
+                    var globe = new Globe({}, {});
+                    globe.surfaceNormalAtPoint(x, y, z, null);
+                }).toThrow();
+            });
+
+            it("Check whether the projection defines a surfaceNormalAtPoint function", function () {
+                var x = 0,
+                    y = 0,
+                    z = 0,
+                    result = new Vec3(0, 0, 0);
+                var projection = {};
+
+                projection.surfaceNormalAtPoint = jasmine.createSpy("surfaceNormalAtPoint spy");
+                var globe = new Globe({}, projection);
+
+                globe.surfaceNormalAtPoint(x, y, z, result);
+                expect(projection.surfaceNormalAtPoint).toHaveBeenCalledWith(globe, x, y, z, result);
+            });
+
+            it("Computes the normal with a 2D projection", function () {
+                var x = 0,
+                    y = 0,
+                    z = 0,
+                    result = new Vec3(0, 0, 0);
+
+                var projection = {is2D: true};
+                var globe = new Globe({}, projection);
+
+                var normal = globe.surfaceNormalAtPoint(x, y, z, result);
+                var expected = new Vec3(0, 0, 1);
+                expect(normal).toEqual(expected);
+            });
+
+            it("Computes the normal", function () {
+                var x = 1000,
+                    y = 1000,
+                    z = 1000,
+                    result = new Vec3(0, 0, 0);
+
+                var globe = new Globe({}, {});
+
+                var normal = globe.surfaceNormalAtPoint(x, y, z, result);
+                var expected = new Vec3(0.576, 0.579, 0.576);
+                expect(normal[0]).toBeCloseTo(expected[0]);
+                expect(normal[1]).toBeCloseTo(expected[1]);
+                expect(normal[2]).toBeCloseTo(expected[2]);
+            });
+
+        });
+
+        describe("Computes the north-pointing tangent vector at a specified location", function () {
+
+            it("Should throw an error on missing result", function () {
+                expect(function () {
+                    var latitude = 0,
+                        longitude = 0;
+
+                    var globe = new Globe({}, {});
+                    globe.northTangentAtLocation(latitude, longitude, null);
+                }).toThrow();
+            });
+
+            it("Check if northTangentAtLocation is being called", function () {
+                var latitude = 0,
+                    longitude = 0,
+                    result = new Vec3(0, 0, 0);
+                var projection = {};
+
+                projection.northTangentAtLocation = jasmine.createSpy("northTangentAtLocation spy");
+                var globe = new Globe({}, projection);
+
+                globe.northTangentAtLocation(latitude, longitude, result);
+                expect(projection.northTangentAtLocation).toHaveBeenCalledWith(globe, latitude, longitude, result);
+            });
+
+
+        });
+
+        describe("Computes the north-pointing tangent vector at a specified Cartesian point", function () {
+
+            it("Should throw an error on missing result", function () {
+                expect(function () {
+                    var x = 0,
+                        y = 0;
+
+                    var globe = new Globe({}, {});
+                    globe.northTangentAtPoint(x, y, null);
+                }).toThrow();
+            });
+
+            it("Check if northTangentAtPoint is being called", function () {
+                var x = 0,
+                    y = 0,
+                    z = 0,
+                    result = new Vec3(0, 0, 0);
+                var projection = {};
+
+                projection.northTangentAtPoint = jasmine.createSpy("northTangentAtPoint spy");
+                var globe = new Globe({}, projection);
+
+                globe.northTangentAtPoint(x, y, z, result);
+                expect(projection.northTangentAtPoint).toHaveBeenCalledWith(globe, x, y, z, globe.offsetVector, result);
+            });
+
+
+        });
+
+        describe("Indicates whether this globe intersects a specified frustum", function () {
+
+            it("Should throw an error on missing frustum", function () {
+                expect(function () {
+                    var globe = new Globe({}, {});
+                    globe.intersectsFrustum(null);
+                }).toThrow();
+            });
+
+            it("Globe intersects the frustum on a 3D globe", function () {
+                var frustumDistance = {distance: 1e10};
+                var frustum = {
+                    near: frustumDistance, far: frustumDistance, top: frustumDistance,
+                    left: frustumDistance, right: frustumDistance, bottom: frustumDistance
+                };
+
+                var globe = new Globe({}, {});
+
+                var result = globe.intersectsFrustum(frustum);
+                expect(result).toBe(true);
+            });
+
+            it("Globe does not intersect the frustum on a 3D globe", function () {
+                var frustumDistance = {distance: 1e6};
+                var frustum = {
+                    near: frustumDistance, far: frustumDistance, top: frustumDistance,
+                    left: frustumDistance, right: frustumDistance, bottom: frustumDistance
+                };
+
+                var globe = new Globe({}, {});
+
+                var result = globe.intersectsFrustum(frustum);
+                expect(result).toBe(false);
+            });
+        });
+
+        describe("Computes the first intersection of this globe with a specified line", function () {
+
+            describe("Exceptions", function () {
+                it("Should throw an error on missing line", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        var result = new Vec3(0, 0, 0);
+                        globe.intersectsLine(null, result);
+                    }).toThrow();
+                });
+
+                it("Should throw an error on missing result", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        var line = {};
+                        globe.intersectsLine(line, null);
+                    }).toThrow();
+                });
+
+            });
+
+            it("Line (ray) is parallel to and not coincident with the XY plane", function () {
+                var globe = new Globe({}, {is2D: true});
+                var result = new Vec3(0, 0, 0);
+                var line = {
+                    direction: new Vec3(0, 0, 0),
+                    origin: new Vec3(0, 0, 1)
+                };
+                var intersection = globe.intersectsLine(line, result);
+                expect(intersection).toBe(false);
+            });
+
+            it("Intersection is behind the ray's origin", function () {
+                var globe = new Globe({}, {is2D: true});
+                var result = new Vec3(0, 0, 0);
+                var line = {
+                    direction: new Vec3(0, 0, 1),
+                    origin: new Vec3(0, 0, 1)
+                };
+                var intersection = globe.intersectsLine(line, result);
+                expect(intersection).toBe(false);
+            });
+
+            it("Computes the intersection correctly on a 2D globe", function () {
+                var globe = new Globe({}, {is2D: true});
+                var result = new Vec3(0, 0, 0);
+                var line = {
+                    direction: new Vec3(2, 3, 1),
+                    origin: new Vec3(2, 3, -1)
+                };
+                var intersection = globe.intersectsLine(line, result);
+                expect(intersection).toBe(true);
+                expect(result[0]).toBeCloseTo(4);
+                expect(result[1]).toBeCloseTo(6);
+                expect(result[2]).toBeCloseTo(0);
+            });
+
+            it("Computes the intersection correctly on a 3D globe", function () {
+                var globe = new Globe({}, {});
+                var result = new Vec3(0, 0, 0);
+                var line = {
+                    direction: new Vec3(2, 3, 1),
+                    origin: new Vec3(2, 3, -1)
+                };
+                var intersection = globe.intersectsLine(line, result);
+                expect(intersection).toBe(true);
+                expect(result[0]).toBeCloseTo(3401896.46);
+                expect(result[1]).toBeCloseTo(5102844.69);
+                expect(result[2]).toBeCloseTo(1700946.23);
+            });
+
+            it("No intersection on the 3D globe", function () {
+                var globe = new Globe({}, {});
+                var result = new Vec3(0, 0, 0);
+                var line = {
+                    direction: new Vec3(2, 3, 1),
+                    origin: new Vec3(-1e10, 3, -1)
+                };
+                var intersection = globe.intersectsLine(line, result);
+                expect(intersection).toBe(false);
+            });
+        });
+
+        it("Returns the timestamp of the elevation model", function () {
+            var elevationModel = {timestamp: Date.now()};
+            var globe = new Globe(elevationModel, {});
+            var result = globe.elevationTimestamp();
+
+            expect(result).toBe(elevationModel.timestamp);
+        });
+
+        it("Returns the minElevation of the elevation model", function () {
+            var elevationModel = {minElevation: 1};
+            var globe = new Globe(elevationModel, {});
+            var result = globe.minElevation();
+
+            expect(result).toBe(elevationModel.minElevation);
+        });
+
+        it("Returns the maxElevation of the elevation model", function () {
+            var elevationModel = {maxElevation: 1};
+            var globe = new Globe(elevationModel, {});
+            var result = globe.maxElevation();
+
+            expect(result).toBe(elevationModel.maxElevation);
+        });
+
+        describe("Returns the minimum and maximum elevations within a specified sector of this globe", function () {
+
+            it("Should throw an error on missing sector", function () {
+                expect(function () {
+                    var globe = new Globe({}, {});
+                    globe.minAndMaxElevationsForSector(null);
+                }).toThrow();
+            });
+
+            it("Should call the minAndMaxElevationsForSector method of the elevation", function () {
+                var sector = {};
+                var elevationModel = {};
+                elevationModel.minAndMaxElevationsForSector = jasmine.createSpy("minAndMaxElevationsForSector spy");
+
+                var globe = new Globe(elevationModel, {});
+                globe.minAndMaxElevationsForSector(sector);
+                expect(elevationModel.minAndMaxElevationsForSector).toHaveBeenCalledWith(sector);
+            });
+        });
+
+        it("Should call elevationAtLocation method from the elevation model", function () {
+            var latitude = 37,
+                longitude = 15;
+            var elevationModel = {};
+            elevationModel.elevationAtLocation = jasmine.createSpy("elevationAtLocation spy");
+
+            var globe = new Globe(elevationModel, {});
+            globe.elevationAtLocation(latitude, longitude);
+            expect(elevationModel.elevationAtLocation).toHaveBeenCalledWith(latitude, longitude);
+        });
+
+        describe("Returns the elevations at locations within a specified sector", function () {
+
+            describe("Exceptions", function () {
+                var sector = {},
+                    numLat = 2,
+                    numLon = 2,
+                    targetResolution = 5,
+                    result = new Float32Array(9);
+
+                it("Should throw an exception on missing sector", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        globe.elevationsForGrid(null, numLat, numLon, targetResolution, result);
+                    }).toThrow();
+                });
+
+                it("Should throw an exception on numLat less or equal to 0", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        globe.elevationsForGrid(sector, 0, numLon, targetResolution, result);
+                    }).toThrow();
+                });
+
+                it("Should throw an exception on numLon less or equal to 0", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        globe.elevationsForGrid(sector, numLat, 0, targetResolution, result);
+                    }).toThrow();
+                });
+
+                it("Should throw an exception on missing result", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        globe.elevationsForGrid(sector, numLat, numLon, targetResolution, null);
+                    }).toThrow();
+                });
+
+                it("Should throw an exception on result length less than numLat*numLon", function () {
+                    expect(function () {
+                        var globe = new Globe({}, {});
+                        globe.elevationsForGrid(sector, numLat, numLon, targetResolution, []);
+                    }).toThrow();
+                });
+            });
+
+            it("Should call the elevationsForGrid method of the elevation model", function () {
+                var sector = {},
+                    numLat = 2,
+                    numLon = 2,
+                    targetResolution = 5,
+                    result = new Float32Array(9);
+                var elevationModel = {};
+                elevationModel.elevationsForGrid = jasmine.createSpy("elevationsForGrid spy");
+
+                var globe = new Globe(elevationModel, {});
+                globe.elevationsForGrid(sector, numLat, numLon, targetResolution, result);
+                expect(elevationModel.elevationsForGrid).toHaveBeenCalledWith(sector, numLat, numLon,
+                    targetResolution, result);
+            });
+        });
 
     });
-//globe test
-});//require def
+});
